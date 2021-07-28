@@ -19,8 +19,8 @@ enum SimItemType
 struct SimItem
 {
   struct SimItem *next;
-  int64_t ts;
   enum SimItemType type;
+  int64_t ts;
 };
 
 struct SimItemMsg

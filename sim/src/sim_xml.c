@@ -15,6 +15,9 @@ struct _ParserContext
   int stack_top;
   struct SimItem *sequence;
   struct SimItem **sequence_tail;
+
+  struct CheckItem *check;
+  struct CheckItem **check_tail;
 };
 
 typedef struct _ParserContext ParserContext;
@@ -173,6 +176,7 @@ get_time_attrs(ParserContext *ctxt, xmlTextReaderPtr reader,
   return 1;
 }
 
+
 static int
 parse_high_low(ParserContext *ctxt, xmlTextReaderPtr reader, int high)
 {
@@ -183,6 +187,23 @@ parse_high_low(ParserContext *ctxt, xmlTextReaderPtr reader, int high)
   sim_seq_add_simple(&ctxt->sequence_tail, 
 		     high ? ExternalHigh : ExternalLow,
 		     time);
+  ctxt->current_ts = time;
+  push_ts(ctxt);
+  ret = parse_events(ctxt, reader);
+  pop_ts(ctxt);
+  return ret;
+}
+
+static int
+parse_check_high_low(ParserContext *ctxt, xmlTextReaderPtr reader, int high)
+{
+  int ret;
+  int64_t time;
+  ret = get_time_attrs(ctxt, reader, &time);
+  if (ret != 1) return ret;
+  check_seq_add_simple(&ctxt->check_tail, 
+		     high ? OutHigh : OutLow,
+		       time,time);
   ctxt->current_ts = time;
   push_ts(ctxt);
   ret = parse_events(ctxt, reader);
@@ -355,6 +376,12 @@ parse_events(ParserContext *ctxt, xmlTextReaderPtr reader)
       } else if (xmlStrEqual(BAD_CAST "bit-seq", name)) {
 	const int ret = parse_bit_seq(ctxt, reader);
 	if (ret != 1) return ret;
+      } else if (xmlStrEqual(BAD_CAST "check-high", name)) {
+	const int ret = parse_check_high_low(ctxt, reader,1);
+	if (ret != 1) return ret;
+      } else if (xmlStrEqual(BAD_CAST "check-low", name)) {
+	const int ret = parse_check_high_low(ctxt, reader,0);
+	if (ret != 1) return ret;
       } else {
 	eprintf("Unknown element %s\n", name);
 	return -1;
@@ -381,7 +408,7 @@ parse_simulation(ParserContext *ctxt, xmlTextReaderPtr reader)
 }
 
 int
-sim_xml_parse(xmlTextReaderPtr reader, struct SimItem **events)
+sim_xml_parse(xmlTextReaderPtr reader, struct SimItem **events, struct CheckItem **checks)
 {
   ParserContext ctxt;
   ctxt.current_ts = 0;
@@ -389,6 +416,8 @@ sim_xml_parse(xmlTextReaderPtr reader, struct SimItem **events)
   ctxt.stack_top = 0;
   ctxt.sequence = NULL;
   ctxt.sequence_tail = &ctxt.sequence;
+  ctxt.check = NULL;
+  ctxt.check_tail = &ctxt.check;
   while (1) {
     int ret = xmlTextReaderRead(reader);
     if (ret != 1) break;
@@ -398,6 +427,7 @@ sim_xml_parse(xmlTextReaderPtr reader, struct SimItem **events)
 	sim_seq_destroy(ctxt.sequence);
       } else {
 	*events = ctxt.sequence;
+	*checks = ctxt.check;
       }
       return ret;
     }

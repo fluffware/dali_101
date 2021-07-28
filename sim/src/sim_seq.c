@@ -1,17 +1,13 @@
 #include <sim_seq.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <assert.h>
 #include <msg.h>
+#include <list.h>
 
 void
 sim_seq_destroy(struct SimItem *seq)
 {
-  while(seq) {
-    struct SimItem *next = seq->next;
-    free(seq);
-    seq = next;
-  }
+  list_destroy((struct List*)seq);
 }
 
 void
@@ -57,42 +53,28 @@ sim_seq_dump(struct SimItem *seq)
   }
 }
 
+static int
+cmp(struct List *a, struct List *b)
+{
+  int64_t a_ts = ((struct SimItem*)a)->ts;
+  int64_t b_ts = ((struct SimItem*)b)->ts;
+  if (a_ts > b_ts) return 1;
+  else if (a_ts < b_ts) return -1;
+  else return 0;
+}
+
 void
 sim_seq_sort(struct SimItem **head)
 {
-  int swapped;
-  if (!*head) return;
-  do {
-    swapped = 0;
-    struct SimItem **ap = head;
-    struct SimItem *a = *ap;
-    struct SimItem *b;
-    while((b = a->next)) {
-      if (a->ts > b->ts) {
-	// Swap a and b
-	a->next = b->next;
-	b->next = a;
-	*ap = b;
-	ap = &b->next;
-	swapped = 1;
-      } else {
-	ap = &a->next;
-      }
-      a = *ap;
-    }
-  } while(swapped);
+  list_sort((struct List**)head, cmp);
 }
 
 struct SimItem *
 sim_seq_add_simple(struct SimItem ***tail, enum SimItemType type, int64_t ts)
 {
-  struct SimItem *item = malloc(sizeof(struct SimItem));
-  assert(item);
+  struct SimItem *item = list_add((struct List ***)tail,sizeof(struct SimItem));
   item->type = type;
   item->ts = ts;
-  item->next = NULL;
-  **tail = item;
-  *tail = &item->next;
   return item;
 }
 
@@ -100,13 +82,10 @@ struct SimItem *
 sim_seq_add_msg(struct SimItem ***tail, enum SimItemType type, int64_t ts,
 		const struct dali_msg *msg)
 {
-  struct SimItemMsg *item = malloc(sizeof(struct SimItemMsg));
-  assert(item);
+  struct SimItemMsg *item = 
+    list_add((struct List ***)tail,sizeof(struct SimItemMsg));
   item->item.type = type;
   item->item.ts = ts;
   item->msg =*msg;
-  item->item.next = NULL;
-  **tail = &item->item;
-  *tail = &item->item.next;
   return &item->item;
 }

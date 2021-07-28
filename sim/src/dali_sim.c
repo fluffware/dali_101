@@ -19,17 +19,19 @@ static struct SimItem *
 read_sim_file(const char *filename)
 {
   struct SimItem *seq = NULL;
+  struct CheckItem *checks = NULL;
   //sim_parser_init(&parser);
   xmlTextReaderPtr reader = xmlReaderForFile(filename, NULL, XML_PARSE_NONET);
   if (!reader) {
     eprintf("Failed to open file %s: %s\n", filename, strerror(errno));
     return NULL;
   }
-  if (sim_xml_parse(reader, &seq) == -1) {
+  if (sim_xml_parse(reader, &seq, &checks) == -1) {
     eprintf("Failed to parse file %s\n", filename);
     return NULL;
   }
   sim_seq_sort(&seq);
+  check_seq_sort(&checks);
   return seq;
 }
 
