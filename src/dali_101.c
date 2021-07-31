@@ -135,6 +135,9 @@ prepare_send(struct DaliContext *ctxt)
     frame = frame >> 8 | ctxt->send_msg.frame[1] << 23;
   case DALI_FLAGS_LENGTH_8:
     frame = frame >> 8 | ctxt->send_msg.frame[0] << 23 | 0x80000000;
+    break;
+  default: // Send a short frame if the length is not handled
+    frame =  0x80400000;
   }
   ctxt->frame = frame;
   ctxt->mask = 0x80000000;
