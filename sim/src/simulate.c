@@ -38,7 +38,6 @@ simulate(const struct SimItem *seq, int64_t max_ts)
   struct DaliContext dali_ctxt;
   dali_init(&dali_ctxt);
   dali_ctxt.no_random = 1;
-  struct dali_msg result;
 
   while(ts <= max_ts) {
     while (seq && ts >= seq->ts) {
@@ -55,8 +54,7 @@ simulate(const struct SimItem *seq, int64_t max_ts)
       case Send:
 	{
 	  struct SimItemMsg *msg_item = (struct SimItemMsg*)seq;
-	  dali_ctxt.send_msg = msg_item->msg;
-	  dali_ctxt.send_left = 1; // Try once
+	  dali_send_msg(&dali_ctxt, &msg_item->msg);
 	  sim_seq_add_msg(&outp, Send, ts, &dali_ctxt.send_msg);
 	}
 	break;
@@ -89,12 +87,12 @@ simulate(const struct SimItem *seq, int64_t max_ts)
     prev_ts = ts;
     if (out_level != dali_get_output_level(&dali_ctxt)) {
       sim_seq_add_simple(&outp, dali_get_output_level(&dali_ctxt) ? OutHigh : OutLow, ts);
-      out_level = dali_ctxt.out_level;
+      out_level = dali_get_output_level(&dali_ctxt);
       ts = prev_ts + 13;
       bus_change = ts;
     } else {
       if (dali_ctxt.timeout > 0) {
-	ts = prev_ts + dali_ctxt.timeout;
+	ts = prev_ts + dali_get_timeout(&dali_ctxt);
       } else {
 	if (!seq) break;
 	ts = INT64_MAX;

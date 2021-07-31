@@ -552,17 +552,7 @@ dali_handler(struct DaliContext *ctxt, uint32_t delta)
   return 0;
 }
 
-void
-dali_set_input_level(struct DaliContext *ctxt, uint32_t level)
-{
-  ctxt->in_level = level;
-}
 
-uint32_t
-dali_get_output_level(const struct DaliContext *ctxt)
-{
-  return ctxt->out_level;
-}
 
 void
 dali_send_msg(struct DaliContext *ctxt, const struct dali_msg *msg)

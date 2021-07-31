@@ -1,0 +1,33 @@
+This project contains a state machine to send and receive frames according to
+IEC 62386-101 (also known as DALI 2). The state machine consists of the files in the src anc include directories. In the sim directory there's a simulator for testing.
+
+The state machine has not been tested in any formal or official way, so while it's intended to be compliant with the standard there are no guarantees.
+
+The state machine is run by calling dali_handler whenever the level of the input changes, the timer from the previous call timedout or there's a new frame to be sent.
+
+The input level at the time of the handler invocation is set by
+dali_set_input_level. In addition to the state, the handler takes an
+argument which is the time has passed since the previous time the
+handle was invoked.
+
+After return of the handler a timer should be started that times out
+after a period indicated by dali_get_timeout. When the timer times out
+the handler should be called again, unless some other event happens
+before. It's important that the cumulative time of several handler
+invocations is the same as if there had been a single long timeout.
+After each call to the handler, the value retrieved by
+dali_get_output_level should be copied to the output.
+
+
+If the return value from the handler is DALI_FRAME_RECEIVED then
+dali_recv_result will return the received frame or an error.
+
+Sending a frame is done by calling dali_send_msg and then calling the handler.
+If the return value from the handler is DALI_FRAME_SENT then dali_send_result
+will return the result of the last transmission.
+
+Before any calls to the handler, the state must be initialized by dali_init.
+
+All times are integers with a resolution given by TICKS_PER_SEC. This value should be defined to reflect the resolution of the timer used.
+
+The access to the state is not synchronized in any way so one must make sure that the handler is never run in parallel on the same state.

@@ -7,19 +7,20 @@
 
 struct DaliTimingParams
 {
-	uint32_t max_switch;
-	uint32_t half_bit;
-	uint32_t double_half_bit;
-	uint32_t stop_condition;
-	uint32_t min_half_bit;
-	uint32_t max_half_bit;
-	uint32_t min_double_half_bit;
-	uint32_t max_double_half_bit;
-
-	uint32_t destroy_short;
-	uint32_t accept_half;
-	uint32_t destroy_mid;
-	uint32_t accept_double_half;
+  uint32_t max_switch; /* Maximum time from output changes level until
+			  the input changes */
+  uint32_t half_bit;
+  uint32_t double_half_bit;
+  uint32_t stop_condition;
+  uint32_t min_half_bit;
+  uint32_t max_half_bit;
+  uint32_t min_double_half_bit;
+  uint32_t max_double_half_bit;
+  
+  uint32_t destroy_short;
+  uint32_t accept_half;
+  uint32_t destroy_mid;
+  uint32_t accept_double_half;
 };
 
 #ifndef TICKS_PER_SEC
@@ -100,16 +101,46 @@ struct DaliContext
 uint32_t
 dali_handler(struct DaliContext *ctxt, uint32_t delta);
 
+/* Initialize the state */
 void
 dali_init(struct DaliContext *ctxt);
 
-void
-dali_set_input_level(struct DaliContext *ctxt, uint32_t level);
+/* Set the current state of the input */
+static inline void
+dali_set_input_level(struct DaliContext *ctxt, uint32_t level)
+{
+  ctxt->in_level = level;
+}
 
+/* Get the state of the out put */
+static inline uint32_t
+dali_get_output_level(const struct DaliContext *ctxt)
+{
+  return ctxt->out_level;
+}
 
-uint32_t
-dali_get_output_level(const struct DaliContext *ctxt);
+/* Get the latest time when the handler should be called. */
+static inline uint32_t
+dali_get_timeout(const struct DaliContext *ctxt)
+{
+  return ctxt->timeout;
+}
 
+/* Get the result of a recent reception */ 
+static inline const struct dali_msg *
+dali_recv_result(const struct DaliContext *ctxt)
+{
+  return &ctxt->receive_msg;
+}
+
+/* Get the result of a previus transmission */
+static inline const struct dali_msg *
+dali_send_result(const struct DaliContext *ctxt)
+{
+  return &ctxt->send_msg;
+}
+
+/* Set up a message for transmission. */
 void
 dali_send_msg(struct DaliContext *ctxt, const struct dali_msg *msg);
 
