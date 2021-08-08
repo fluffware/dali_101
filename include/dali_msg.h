@@ -3,6 +3,9 @@
 
 
 #define DALI_OK 0
+#define DALI_SEND_DONE 2
+#define DALI_RECV_FRAME 5
+
 #define DALI_ERR_FRAMING 10 // Received a frame with a framing error
 #define DALI_ERR_BUS_LOW 20 // The bus has been low for a long time
 #define DALI_INFO_BUS_HIGH 24 // The bus has returned to a high level

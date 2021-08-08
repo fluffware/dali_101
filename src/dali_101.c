@@ -150,24 +150,24 @@ static PT_THREAD(main_loop(struct DaliContext *ctxt))
   /* Wait for the bus to become idle */
  wait_idle:
   while(1) {
-    if (ctxt->last_in_level == DALI_HIGH
-	&& ctxt->last_in_flank_timer >= ctxt->timing.stop_condition) {
-      break;
-    }
-    if (ctxt->in_level == DALI_LOW) {
-      DALI_WAIT(BUS_LOW_REPORT_INTERVAL);
-      if (ctxt->timed_out) {
-	ctxt->reply_ready = 1;
-	ctxt->receive_msg.result = DALI_ERR_BUS_LOW;
-	DALI_WAIT(0);
+    if (ctxt->in_level == DALI_HIGH) {
+      if (ctxt->last_in_flank_timer >= ctxt->timing.stop_condition) {
+	break;
+      }
+      DALI_WAIT(ctxt->timing.stop_condition - ctxt->last_in_flank_timer);
+    } else {
+      while (ctxt->in_level == DALI_LOW 
+	     && ctxt->last_in_flank_timer < BUS_LOW_REPORT_INTERVAL) {
+	DALI_WAIT(BUS_LOW_REPORT_INTERVAL - ctxt->last_in_flank_timer);
+      }
+      if (ctxt->in_level == DALI_LOW) {
+	do {
+	  ctxt->reply_ready = 1;
+	  ctxt->receive_msg.result = DALI_ERR_BUS_LOW;
+	  DALI_WAIT(0);
+	} while(ctxt->in_level == DALI_LOW) ;
 	ctxt->reply_ready = 1;
 	ctxt->receive_msg.result = DALI_INFO_BUS_HIGH;
-      }
-    } else {
-      if (ctxt->last_in_flank_timer < ctxt->timing.stop_condition) {
-	DALI_WAIT(ctxt->timing.stop_condition - ctxt->last_in_flank_timer);
-      } else {
-	DALI_WAIT(ctxt->timing.stop_condition);
       }
     }
   }
@@ -320,7 +320,7 @@ static PT_THREAD(main_loop(struct DaliContext *ctxt))
       ctxt->twice_pending = 0;
       ctxt->send_done = 1;
       ctxt->send_left = 0; // Stop further transmission attempts
-      ctxt->send_msg.result = 0;
+      ctxt->send_msg.result = DALI_SEND_DONE;
       ctxt->receive_msg.seq = ctxt->send_msg.seq;
       goto receive;
     }
@@ -331,8 +331,9 @@ static PT_THREAD(main_loop(struct DaliContext *ctxt))
       ctxt->twice_pending = 1;
       goto wait_idle;
     }
+    ctxt->send_msg.result = DALI_SEND_DONE;
   }
-  
+
   ctxt->twice_pending = 0;
   ctxt->send_done = 1;
   ctxt->send_left = 0; // Stop further transmission attempts
@@ -396,7 +397,7 @@ static PT_THREAD(main_loop(struct DaliContext *ctxt))
       
     if (ctxt->in_level == DALI_HIGH) {
       ctxt->receive_msg.flags = 0;
-      ctxt->receive_msg.result = DALI_OK;
+      ctxt->receive_msg.result = DALI_RECV_FRAME;
       uint32_t frame = ctxt->frame;
       switch((ctxt->half_bits-1)/2) {
       case 24:
